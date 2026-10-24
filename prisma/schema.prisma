@@ -1,0 +1,19 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Add ecommerce models here (Product, Order, User, ...).
+// Keep models focused; put business rules in module services, not in this file.
+
+
+model demoUser {
+  id    Int    @id @default(autoincrement())
+  name  String
+  email String @unique
+}
+

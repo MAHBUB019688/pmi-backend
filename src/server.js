@@ -1,22 +1,37 @@
 const env = require("./config/env");
+const prisma = require("./db/prisma");
 const createApp = require("./app");
 
 const app = createApp();
+let server;
 
-const server = app.listen(env.port, () => {
-  console.log(`Server running on port ${env.port} (${env.nodeEnv})`);
-});
+async function start() {
+  await prisma.$connect();
 
-// This code handles graceful shutdown and unexpected errors in a Node.js / Express.js server.
+  server = app.listen(env.port, () => {
+    console.log(`Server running on port ${env.port} (${env.nodeEnv})`);
+  });
+}
+
 function shutdown(signal) {
   console.log(`${signal} received. Shutting down...`);
+
+  const exit = async (code) => {
+    await prisma.$disconnect().catch(() => {});
+    process.exit(code);
+  };
+
+  if (!server) {
+    return exit(1);
+  }
+
   server.close(() => {
-    process.exit(0);
+    exit(0);
   });
 
   setTimeout(() => {
     console.error("Forced shutdown after timeout");
-    process.exit(1);
+    exit(1);
   }, 10000).unref();
 }
 
@@ -30,4 +45,9 @@ process.on("unhandledRejection", (reason) => {
 process.on("uncaughtException", (error) => {
   console.error("Uncaught exception:", error);
   shutdown("uncaughtException");
+});
+
+start().catch((error) => {
+  console.error("Failed to start server:", error.message);
+  process.exit(1);
 });

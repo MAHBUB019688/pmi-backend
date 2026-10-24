@@ -1,7 +1,10 @@
 const env = require("../config/env");
 const AppError = require("../utils/AppError");
+const mapPrismaError = require("../db/mapPrismaError");
 
 function errorHandler(err, _req, res, _next) {
+  err = mapPrismaError(err) || err;
+
   const statusCode = err.statusCode || 500;
   const isOperational = err instanceof AppError || err.isOperational;
 
