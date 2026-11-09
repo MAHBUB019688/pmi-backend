@@ -7,56 +7,393 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Add ecommerce models here (Product, Order, User, ...).
-// Keep models focused; put business rules in module services, not in this file.
-
-
-model demoUser {
-  id    Int    @id @default(autoincrement())
-  name  String
-  email String @unique
+enum Availability {
+  in_stock
+  out_of_stock
+  upcoming
+  pre_order
 }
 
-model Student {
+enum CartItemType {
+  product
+  ticket
+}
+
+enum OrderStatus {
+  pending
+  paid
+  cancelled
+  completed
+}
+
+enum PaymentMethod {
+  cash
+  card
+  online
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  name          String
+  email         String?   @unique
+  phone         String    @unique
+  dateOfBirth   DateTime? @map("date_of_birth") @db.Date
+  gender        String?
+  firebaseUid   String?   @unique @map("firebase_uid")
+  isRestricted  Boolean   @default(false) @map("is_restricted")
+  isVerified    Boolean   @default(false) @map("is_verified")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  otps          OtpCode[]
+  cart          Cart?
+  address       CustomerAddress?
+  orders        Order[]
+
+  @@map("users")
+}
+
+model OtpCode {
   id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  age       Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId    Int?     @map("user_id")
+  phone     String
+  code      String
+  purpose   String // register | login
+  expiresAt DateTime @map("expires_at")
+  consumed  Boolean  @default(false)
+  payload   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([phone, purpose])
+  @@map("otp_codes")
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  title     String
+  slug      String   @unique
+  image     String?
+  sortOrder Int      @default(0) @map("sort_order")
+  status    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  products Product[]
+
+  @@map("categories")
 }
 
 model Product {
-  id             Int      @id @default(autoincrement())
-  name           String
-  desktop_image  String?
-  mobile_image   String?
-  slug           String   @unique
-  title          String
-  subtitle       String?
-  description    String?  @db.Text
-  price          Decimal  @db.Decimal(10, 2)
-  availability   Boolean  @default(true)
-  rating         Decimal? @db.Decimal(2, 1)
-  old_price      Decimal? @db.Decimal(10, 2)
-  category       String
+  id               Int          @id @default(autoincrement())
+  categoryId       Int          @map("category_id")
+  title            String
+  slug             String       @unique
+  sub              String?
+  price            Decimal      @db.Decimal(10, 2)
+  oldPrice         Decimal?     @map("old_price") @db.Decimal(10, 2)
+  availability     Availability @default(in_stock)
+  isStock          Boolean      @default(true) @map("is_stock")
+  isRestricted     Boolean      @default(false) @map("is_restricted")
+  quantity         Int          @default(0)
+  thumbnailWeb     String?      @map("thumbnail_web")
+  thumbnailMobile  String?      @map("thumbnail_mobile")
+  bannerWeb        String?      @map("banner_web")
+  description      String?      @db.Text
+  introduction     String?      @db.Text
+  productUse       String?      @map("product_use") @db.Text
+  weight           String?
+  vents            String?
+  feature          String?      @db.Text
+  mips             String?
+  material         String?
+  technology       String?
+  certification    String?
+  otherDescription String?      @map("other_description") @db.Text
+  status           Boolean      @default(true)
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  category Category       @relation(fields: [categoryId], references: [id])
+  images   ProductImage[]
+  cartItems CartItem[]
+  orderItems OrderItem[]
 
-  @@index([category])
+  @@index([categoryId])
+  @@index([isRestricted])
   @@index([availability])
   @@map("products")
 }
 
-model TrendingProduct {
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  productId Int      @map("product_id")
+  url       String
+  sortOrder Int      @default(0) @map("sort_order")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_images")
+}
+
+model PageContent {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique // home | product-page | restricted-product-page | galleries-page
+  title     String?
+  subtitle  String?
+  data      Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("page_contents")
+}
+
+model EventCategory {
   id        Int      @id @default(autoincrement())
   title     String
-  subtitle  String?
-  images    String[]
+  slug      String   @unique
+  status    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  events    Event[]
+  galleries Gallery[]
 
-  @@map("trending_products")
+  @@map("event_categories")
+}
+
+model Event {
+  id              Int      @id @default(autoincrement())
+  eventCategoryId Int      @map("event_category_id")
+  title           String
+  slug            String   @unique
+  description     String?  @db.Text
+  date            DateTime @db.Date
+  startTime       String   @map("start_time")
+  endTime         String   @map("end_time")
+  location        String
+  bannerWeb       String?  @map("banner_web")
+  bannerMobile    String?  @map("banner_mobile")
+  mediaUrl        String?  @map("media_url")
+  stages          Json?
+  status          Boolean  @default(true)
+  isUpcoming      Boolean  @default(true) @map("is_upcoming")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  eventCategory EventCategory @relation(fields: [eventCategoryId], references: [id])
+  tickets       Ticket[]
+
+  @@index([isUpcoming])
+  @@map("events")
+}
+
+model Ticket {
+  id          Int      @id @default(autoincrement())
+  eventId     Int      @map("event_id")
+  title       String
+  description String?  @db.Text
+  price       Decimal  @db.Decimal(10, 2)
+  quantity    Int      @default(0)
+  imageUrl    String?  @map("image_url")
+  status      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  event     Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
+  orderItems OrderItem[]
+
+  @@map("tickets")
+}
+
+model Cart {
+  id        Int        @id @default(autoincrement())
+  userId    Int        @unique @map("user_id")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        Int          @id @default(autoincrement())
+  cartId    Int          @map("cart_id")
+  itemType  CartItemType @map("item_type")
+  productId Int?         @map("product_id")
+  ticketId  Int?         @map("ticket_id")
+  quantity  Int          @default(1)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  cart    Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ticket  Ticket?  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([cartId, itemType])
+  @@map("cart_items")
+}
+
+model CustomerAddress {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @unique @map("user_id")
+  email          String?
+  phone          String?
+  firstName      String?  @map("first_name")
+  lastName       String?  @map("last_name")
+  country        String?  @default("Bangladesh")
+  address        String?
+  additionalInfo String?  @map("additional_info")
+  town           String?
+  city           String?
+  postCode       String?  @map("post_code")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("customer_addresses")
+}
+
+model Order {
+  id              Int           @id @default(autoincrement())
+  userId          Int           @map("user_id")
+  orderNo         String        @unique @map("order_no")
+  status          OrderStatus   @default(pending)
+  paymentMethod   PaymentMethod @default(cash) @map("payment_method")
+  grandTotalPrice Decimal       @map("grand_total_price") @db.Decimal(12, 2)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items OrderItem[]
+
+  @@index([userId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id            Int          @id @default(autoincrement())
+  orderId       Int          @map("order_id")
+  itemType      CartItemType @map("item_type")
+  productId     Int?         @map("product_id")
+  ticketId      Int?         @map("ticket_id")
+  productName   String       @map("product_name")
+  categoryId    Int?         @map("category_id")
+  categoryName  String?      @map("category_name")
+  image         String?
+  quantity      Int
+  unitPrice     Decimal      @map("unit_price") @db.Decimal(10, 2)
+  totalPrice    Decimal      @map("total_price") @db.Decimal(12, 2)
+  discountPrice Decimal      @default(0) @map("discount_price") @db.Decimal(10, 2)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  ticket  Ticket?  @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  @@map("order_items")
+}
+
+model Store {
+  id          Int      @id @default(autoincrement())
+  name        String
+  address     String
+  description String?  @db.Text
+  latitude    Decimal  @db.Decimal(10, 7)
+  longitude   Decimal  @db.Decimal(10, 7)
+  status      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("stores")
+}
+
+model Gallery {
+  id              Int      @id @default(autoincrement())
+  eventCategoryId Int      @map("event_category_id")
+  image           String
+  sortOrder       Int      @default(0) @map("sort_order")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  eventCategory EventCategory @relation(fields: [eventCategoryId], references: [id], onDelete: Cascade)
+
+  @@index([eventCategoryId])
+  @@map("galleries")
+}
+
+model TermCategory {
+  id           Int      @id @default(autoincrement())
+  title        String
+  subtitle     String?
+  iconImage    String?  @map("icon_image")
+  iconImageUrl String?  @map("icon_image_url")
+  status       Boolean  @default(true)
+  sortOrder    Int      @default(0) @map("sort_order")
+
+  terms Term[]
+
+  @@map("term_categories")
+}
+
+model Term {
+  id               Int    @id @default(autoincrement())
+  termCategoryId   Int    @map("term_category_id")
+  title            String
+  acknowledgment   String?
+  description      String @db.Text
+
+  category TermCategory @relation(fields: [termCategoryId], references: [id], onDelete: Cascade)
+
+  @@map("terms")
+}
+
+model ComplianceCategory {
+  id           Int      @id @default(autoincrement())
+  title        String
+  subtitle     String?
+  iconImage    String?  @map("icon_image")
+  iconImageUrl String?  @map("icon_image_url")
+  status       Boolean  @default(true)
+  sortOrder    Int      @default(0) @map("sort_order")
+
+  compliances Compliance[]
+
+  @@map("compliance_categories")
+}
+
+model Compliance {
+  id                    Int     @id @default(autoincrement())
+  complianceCategoryId  Int     @map("compliance_category_id")
+  title                 String
+  subtitle              String?
+  acknowledgment        String?
+  descriptionTitle      String? @map("description_title")
+  description           String  @db.Text
+
+  category ComplianceCategory @relation(fields: [complianceCategoryId], references: [id], onDelete: Cascade)
+
+  @@map("compliances")
+}
+
+model ComplianceContact {
+  id       Int    @id @default(autoincrement())
+  title    String
+  subtitle String?
+  email    String
+  phone    String
+
+  @@map("compliance_contacts")
+}
+
+model ComplianceMeta {
+  id                      Int    @id @default(1)
+  mainSubtitleDescription String @map("main_subtitle_description") @db.Text
+
+  @@map("compliance_meta")
 }

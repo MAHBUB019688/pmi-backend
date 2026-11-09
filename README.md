@@ -1,58 +1,56 @@
 # PMI Ecommerce Backend
 
-Express API with a feature-based layout: routes stay thin, business logic lives in modules, and errors are handled in one place.
+Express + Prisma API designed to match the existing Next.js frontend contract in `pmi-ecom-fe` (`src/lib/api.ts`).
 
-## Run
+## Setup
 
 ```bash
 npm install
 copy .env.example .env
-```
-
-Set `DATABASE_URL` to a PostgreSQL database, then:
-
-```bash
+# set DATABASE_URL to your PostgreSQL database
 npx prisma migrate dev --name init
+npm run prisma:seed
 npm run dev
 ```
 
-- `GET /` — API info
-- `GET /api/health` — health + database ping
+API base: `http://localhost:5000/api`
 
-Prisma Client is generated on `npm install`. Use `src/db/prisma.js` in services — never create a second `PrismaClient`.
+Point the frontend at it:
 
-## Layout
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5000/api
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+In development, OTP codes are logged to the server console and returned in responses when `EXPOSE_OTP=true`.
+
+## Architecture
 
 ```
 src/
-  server.js              # process entry, graceful shutdown
-  app.js                 # Express app (middleware + routes)
-  config/env.js          # environment
-  db/prisma.js           # singleton Prisma Client
-  db/mapPrismaError.js   # Prisma → HTTP errors
-  routes/index.js        # mount /api modules
-  middleware/            # 404 + error handler
-  utils/                 # AppError, asyncHandler, response shape
-  modules/<feature>/     # routes + controller (+ service/model later)
+  app.js / server.js
+  config/env.js
+  db/prisma.js
+  middleware/auth.js, errorHandler.js, notFound.js
+  modules/
+    auth/      OTP register/login, firebase, profile
+    product/   categories, products, search, banners
+    cart/      add/update/remove/list
+    order/     address, purchases, latest order
+    event/     home, upcoming, event details
+    cms/       stores, terms, compliance, gallery
+  utils/       apiResponse, serializers, pagination, validate
 ```
 
-Add a feature as `src/modules/<name>/`, then mount it in `src/routes/index.js`.
+## Auth flow
 
-Put tables in `prisma/schema.prisma`, then `npm run prisma:migrate`. Query them through `src/db/prisma.js`.
+1. `POST /api/register/otp/send` or `POST /api/login/otp/send`
+2. `POST /api/*/otp/verify` → `{ data: { token, user } }`
+3. Frontend stores JWT in `auth_token` cookie and sends `Authorization: Bearer <token>`
 
-<!-- //module and package -->
+## Response shape
 
-node_modules/ Installed packages
-index.js /Main server file
-package.json /Project configuration
-package-lock.json /Dependency lockfile
-
-<!-- //common comand to migarte model in database -->
-
-npx prisma validate
-npx prisma migrate dev --name init
-npx prisma generate
-
-<!-- prisma validate checks your Prisma schema.
-prisma migrate dev creates and applies a database migration.
-prisma generate generates the Prisma Client used by your application. -->
+```json
+{ "success": true, "message": "...", "data": {} }
+{ "success": false, "message": "...", "errors": { "field": ["..."] } }
+```

@@ -19,6 +19,13 @@ const env = {
   port: toNumber(process.env.PORT, 5000),
   corsOrigin: process.env.CORS_ORIGIN || "*",
   databaseUrl: required("DATABASE_URL"),
+  jwtSecret: process.env.JWT_SECRET || "dev-change-me-pmi-ecommerce",
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
+  otpExpiryMinutes: toNumber(process.env.OTP_EXPIRY_MINUTES, 5),
+  otpLength: toNumber(process.env.OTP_LENGTH, 6),
+  // In development, OTP is returned in API response for testing.
+  exposeOtp: (process.env.EXPOSE_OTP || "true") === "true",
+  firebaseProjectId: process.env.FIREBASE_PROJECT_ID || "",
 };
 
 env.isProduction = env.nodeEnv === "production";

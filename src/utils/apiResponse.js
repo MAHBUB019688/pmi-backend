@@ -6,11 +6,15 @@ function success(res, { data = null, message = "OK", statusCode = 200 } = {}) {
   });
 }
 
-function fail(res, { message = "Request failed", statusCode = 400, details } = {}) {
+function fail(
+  res,
+  { message = "Request failed", statusCode = 400, details, errors } = {},
+) {
   return res.status(statusCode).json({
     success: false,
     message,
-    details,
+    ...(details !== undefined ? { details } : {}),
+    ...(errors !== undefined ? { errors } : {}),
   });
 }
 
