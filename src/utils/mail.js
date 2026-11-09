@@ -41,15 +41,29 @@ async function sendMail({ to, subject, html, text }) {
     return { skipped: true, reason: "not_configured" };
   }
 
-  const info = await transport.sendMail({
-    from: env.mailFrom,
-    to,
-    subject,
-    text,
-    html,
-  });
+  // Gmail requires From to match the authenticated account
+  const from = env.mailFrom.includes(env.smtpUser)
+    ? env.mailFrom
+    : `CARPE DIEM <${env.smtpUser}>`;
 
-  return { skipped: false, messageId: info.messageId };
+  try {
+    const info = await transport.sendMail({
+      from,
+      to,
+      subject,
+      text,
+      html,
+    });
+
+    console.log(`[mail] Sent to ${to} (${info.messageId})`);
+    return { skipped: false, messageId: info.messageId };
+  } catch (error) {
+    console.error("[mail] Send failed:", error.message);
+    if (error.response) {
+      console.error("[mail] SMTP response:", error.response);
+    }
+    throw error;
+  }
 }
 
 async function sendWelcomeEmail(user) {
