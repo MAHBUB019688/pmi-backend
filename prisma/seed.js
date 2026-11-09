@@ -1,13 +1,13 @@
 const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
-const PLACEHOLDER = "/imagePlaceHolder.webp";
+const PLACEHOLDER = "https://img.magnific.com/free-photo/woman-beach-with-her-baby-enjoying-sunset_52683-144131.jpg?size=626&ext=jpg";
 
 async function main() {
   // ── Categories ──────────────────────────────────────────────────────────
   const apparel = await prisma.category.upsert({
     where: { slug: "apparel" },
-    update: {},
+    update: { image: PLACEHOLDER },
     create: {
       title: "Apparel",
       slug: "apparel",
@@ -18,7 +18,7 @@ async function main() {
 
   const accessories = await prisma.category.upsert({
     where: { slug: "accessories" },
-    update: {},
+    update: { image: PLACEHOLDER },
     create: {
       title: "Accessories",
       slug: "accessories",
@@ -29,7 +29,7 @@ async function main() {
 
   const footwear = await prisma.category.upsert({
     where: { slug: "footwear" },
-    update: {},
+    update: { image: PLACEHOLDER },
     create: {
       title: "Footwear",
       slug: "footwear",
@@ -41,7 +41,11 @@ async function main() {
   // ── Products ────────────────────────────────────────────────────────────
   const helmet = await prisma.product.upsert({
     where: { slug: "carpe-diem-helmet" },
-    update: {},
+    update: {
+      thumbnailWeb: PLACEHOLDER,
+      thumbnailMobile: PLACEHOLDER,
+      bannerWeb: PLACEHOLDER,
+    },
     create: {
       categoryId: accessories.id,
       title: "Carpe Diem Helmet",
@@ -72,7 +76,11 @@ async function main() {
 
   const tee = await prisma.product.upsert({
     where: { slug: "carpe-diem-tee" },
-    update: {},
+    update: {
+      thumbnailWeb: PLACEHOLDER,
+      thumbnailMobile: PLACEHOLDER,
+      bannerWeb: PLACEHOLDER,
+    },
     create: {
       categoryId: apparel.id,
       title: "Carpe Diem Tee",
@@ -94,7 +102,11 @@ async function main() {
 
   await prisma.product.upsert({
     where: { slug: "restricted-drop" },
-    update: {},
+    update: {
+      thumbnailWeb: PLACEHOLDER,
+      thumbnailMobile: PLACEHOLDER,
+      bannerWeb: PLACEHOLDER,
+    },
     create: {
       categoryId: apparel.id,
       title: "Restricted Drop",
@@ -117,7 +129,11 @@ async function main() {
 
   await prisma.product.upsert({
     where: { slug: "carpe-diem-sneakers" },
-    update: {},
+    update: {
+      thumbnailWeb: PLACEHOLDER,
+      thumbnailMobile: PLACEHOLDER,
+      bannerWeb: PLACEHOLDER,
+    },
     create: {
       categoryId: footwear.id,
       title: "Carpe Diem Sneakers",
@@ -143,7 +159,11 @@ async function main() {
 
   await prisma.product.upsert({
     where: { slug: "carpe-diem-cap" },
-    update: {},
+    update: {
+      thumbnailWeb: PLACEHOLDER,
+      thumbnailMobile: PLACEHOLDER,
+      bannerWeb: PLACEHOLDER,
+    },
     create: {
       categoryId: accessories.id,
       title: "Carpe Diem Cap",
@@ -188,7 +208,11 @@ async function main() {
 
   const festival = await prisma.event.upsert({
     where: { slug: "carpe-diem-night" },
-    update: {},
+    update: {
+      bannerWeb: PLACEHOLDER,
+      bannerMobile: PLACEHOLDER,
+      mediaUrl: PLACEHOLDER,
+    },
     create: {
       eventCategoryId: nightlife.id,
       title: "Carpe Diem Night",
@@ -234,7 +258,11 @@ async function main() {
 
   await prisma.event.upsert({
     where: { slug: "summer-sounds" },
-    update: {},
+    update: {
+      bannerWeb: PLACEHOLDER,
+      bannerMobile: PLACEHOLDER,
+      mediaUrl: PLACEHOLDER,
+    },
     create: {
       eventCategoryId: festivalDay.id,
       title: "Summer Sounds",

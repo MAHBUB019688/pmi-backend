@@ -24,6 +24,20 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 In development, OTP codes are logged to the server console and returned in responses when `EXPOSE_OTP=true`.
 
+### Welcome email (after registration)
+
+Set SMTP credentials in `.env` (Gmail App Password works well):
+
+```env
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-gmail-app-password
+MAIL_FROM="CARPE DIEM <your-email@gmail.com>"
+```
+
+After OTP verify succeeds, a welcome email is sent to the registered email (async; registration still succeeds if mail fails).
+
+Test endpoint: `POST /api/email/test` with `{ "email": "you@example.com" }`.
+
 ## Architecture
 
 ```

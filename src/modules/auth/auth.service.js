@@ -4,6 +4,7 @@ const env = require("../../config/env");
 const { generateOtp, otpExpiresAt } = require("../../utils/otp");
 const { signAccessToken } = require("../../utils/token");
 const { mapUser, mapCartItem } = require("../../utils/serializers");
+const { sendWelcomeEmail } = require("../../utils/mail");
 
 async function invalidateOtps(phone, purpose) {
   await prisma.otpCode.updateMany({
@@ -152,6 +153,14 @@ async function verifyRegisterOtp({ phone, otp }) {
 
   await ensureCart(user.id);
   const auth = await buildAuthPayload(user);
+
+  if (user.email) {
+    sendWelcomeEmail(user).catch((error) => {
+      console.error("[mail] Welcome email failed:", error.message);
+    });
+  } else {
+    console.warn("[mail] Welcome email skipped: user has no email");
+  }
 
   return {
     message: "Registration successful",

@@ -26,6 +26,18 @@ const env = {
   // In development, OTP is returned in API response for testing.
   exposeOtp: (process.env.EXPOSE_OTP || "true") === "true",
   firebaseProjectId: process.env.FIREBASE_PROJECT_ID || "",
+
+  // SMTP / email (Gmail app password recommended for development)
+  smtpHost: process.env.SMTP_HOST || "smtp.gmail.com",
+  smtpPort: toNumber(process.env.SMTP_PORT, 587),
+  smtpSecure: (process.env.SMTP_SECURE || "false") === "true",
+  smtpUser: process.env.SMTP_USER || process.env.EMAIL_USER || "",
+  smtpPass: process.env.SMTP_PASS || process.env.EMAIL_PASS || "",
+  mailFrom:
+    process.env.MAIL_FROM ||
+    process.env.SMTP_USER ||
+    process.env.EMAIL_USER ||
+    "noreply@carpediem.local",
 };
 
 env.isProduction = env.nodeEnv === "production";

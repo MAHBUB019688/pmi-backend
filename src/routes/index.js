@@ -6,6 +6,7 @@ const cartRoutes = require("../modules/cart/cart.routes");
 const orderRoutes = require("../modules/order/order.routes");
 const eventRoutes = require("../modules/event/event.routes");
 const cmsRoutes = require("../modules/cms/cms.routes");
+const emailRoutes = require("../modules/email/email.routes");
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use("/cart", cartRoutes);
 router.use(orderRoutes);
 router.use(eventRoutes);
 router.use(cmsRoutes);
+router.use(emailRoutes);
 
 module.exports = router;
