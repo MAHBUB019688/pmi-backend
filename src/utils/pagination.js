@@ -1,6 +1,7 @@
 function getPagination(query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
-  const perPage = Math.min(100, Math.max(1, Number(query.per_page) || 12));
+  const rawPerPage = Number(query.per_page ?? query.limit) || 12;
+  const perPage = Math.min(100, Math.max(1, rawPerPage));
   const skip = (page - 1) * perPage;
 
   return { page, perPage, skip, take: perPage };

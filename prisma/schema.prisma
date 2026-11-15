@@ -96,6 +96,8 @@ model Product {
   availability     Availability @default(in_stock)
   isStock          Boolean      @default(true) @map("is_stock")
   isRestricted     Boolean      @default(false) @map("is_restricted")
+  isTrending       Boolean      @default(false) @map("is_trending")
+  trendingOrder    Int          @default(0) @map("trending_order")
   quantity         Int          @default(0)
   thumbnailWeb     String?      @map("thumbnail_web")
   thumbnailMobile  String?      @map("thumbnail_mobile")
@@ -123,6 +125,7 @@ model Product {
   @@index([categoryId])
   @@index([isRestricted])
   @@index([availability])
+  @@index([isTrending])
   @@map("products")
 }
 
@@ -396,4 +399,115 @@ model ComplianceMeta {
   mainSubtitleDescription String @map("main_subtitle_description") @db.Text
 
   @@map("compliance_meta")
+}
+
+enum VendorStatus {
+  pending
+  approved
+  rejected
+}
+
+enum RequestStatus {
+  pending
+  approved
+  rejected
+}
+
+model AdminUser {
+  id           Int       @id @default(autoincrement())
+  name         String
+  email        String    @unique
+  phone        String?   @unique
+  passwordHash String    @map("password_hash")
+  status       Boolean   @default(true)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  roles AdminUserRole[]
+
+  @@map("admin_users")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  status      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  permissions RolePermission[]
+  users       AdminUserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          Int      @id @default(autoincrement())
+  name        String
+  slug        String   @unique
+  groupName   String?  @map("group_name")
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       Int @map("role_id")
+  permissionId Int @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model AdminUserRole {
+  adminUserId Int @map("admin_user_id")
+  roleId      Int @map("role_id")
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  role      Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([adminUserId, roleId])
+  @@map("admin_user_roles")
+}
+
+model Vendor {
+  id           Int          @id @default(autoincrement())
+  businessName String       @map("business_name")
+  contactName  String?      @map("contact_name")
+  email        String?
+  phone        String
+  address      String?
+  notes        String?      @db.Text
+  status       VendorStatus @default(pending)
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  categoryRequests CategoryRequest[]
+
+  @@index([status])
+  @@map("vendors")
+}
+
+model CategoryRequest {
+  id          Int           @id @default(autoincrement())
+  vendorId    Int?          @map("vendor_id")
+  title       String
+  description String?       @db.Text
+  status      RequestStatus @default(pending)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  vendor Vendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@map("category_requests")
 }

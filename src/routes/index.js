@@ -7,6 +7,7 @@ const orderRoutes = require("../modules/order/order.routes");
 const eventRoutes = require("../modules/event/event.routes");
 const cmsRoutes = require("../modules/cms/cms.routes");
 const emailRoutes = require("../modules/email/email.routes");
+const adminRoutes = require("../modules/admin");
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use(orderRoutes);
 router.use(eventRoutes);
 router.use(cmsRoutes);
 router.use(emailRoutes);
+router.use("/admin", adminRoutes);
 
 module.exports = router;

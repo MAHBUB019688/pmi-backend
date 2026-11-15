@@ -1,7 +1,38 @@
 const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcryptjs");
 
 const prisma = new PrismaClient();
 const PLACEHOLDER = "https://img.magnific.com/free-photo/woman-beach-with-her-baby-enjoying-sunset_52683-144131.jpg?size=626&ext=jpg";
+
+const ADMIN_PERMISSIONS = [
+  { slug: "dashboard_view", name: "Dashboard View", groupName: "Dashboard" },
+  { slug: "category_manage", name: "Category Manage", groupName: "Catalog" },
+  { slug: "product_manage", name: "Product Manage", groupName: "Catalog" },
+  { slug: "inventory_manage", name: "Inventory Manage", groupName: "Catalog" },
+  { slug: "trending_manage", name: "Trending Manage", groupName: "Catalog" },
+  { slug: "event_manage", name: "Event Manage", groupName: "Events" },
+  { slug: "order_list", name: "Order List", groupName: "Orders" },
+  { slug: "order_manage", name: "Order Manage", groupName: "Orders" },
+  {
+    slug: "vendor_registration_manage",
+    name: "Vendor Registration Manage",
+    groupName: "Vendors",
+  },
+  { slug: "store_manage", name: "Store Manage", groupName: "Stores" },
+  {
+    slug: "category_request_manage",
+    name: "Category Request Manage",
+    groupName: "Vendors",
+  },
+  { slug: "user_manage", name: "Admin User Manage", groupName: "Users" },
+  { slug: "customer_manage", name: "Customer Manage", groupName: "Users" },
+  { slug: "role_manage", name: "Role Manage", groupName: "RBAC" },
+  { slug: "permission_manage", name: "Permission Manage", groupName: "RBAC" },
+  { slug: "settings_manage", name: "Settings Manage", groupName: "CMS" },
+  { slug: "term_manage", name: "Term Manage", groupName: "CMS" },
+  { slug: "compliance_manage", name: "Compliance Manage", groupName: "CMS" },
+];
+
 
 async function main() {
   // ── Categories ──────────────────────────────────────────────────────────
@@ -864,6 +895,145 @@ async function main() {
     });
   }
 
+  // ── Admin panel: permissions, Super Admin, vendors ──────────────────────
+  for (const perm of ADMIN_PERMISSIONS) {
+    await prisma.permission.upsert({
+      where: { slug: perm.slug },
+      update: {
+        name: perm.name,
+        groupName: perm.groupName,
+      },
+      create: {
+        name: perm.name,
+        slug: perm.slug,
+        groupName: perm.groupName,
+        description: perm.name,
+      },
+    });
+  }
+
+  const allPermissions = await prisma.permission.findMany();
+
+  const superAdminRole = await prisma.role.upsert({
+    where: { slug: "super-admin" },
+    update: {
+      name: "Super Admin",
+      description: "Full access to admin panel",
+      status: true,
+    },
+    create: {
+      name: "Super Admin",
+      slug: "super-admin",
+      description: "Full access to admin panel",
+      status: true,
+    },
+  });
+
+  await prisma.rolePermission.deleteMany({
+    where: { roleId: superAdminRole.id },
+  });
+  await prisma.rolePermission.createMany({
+    data: allPermissions.map((p) => ({
+      roleId: superAdminRole.id,
+      permissionId: p.id,
+    })),
+    skipDuplicates: true,
+  });
+
+  const passwordHash = await bcrypt.hash("CarpeDiem!2026#", 10);
+  const superAdminUser = await prisma.adminUser.upsert({
+    where: { email: "info-diem@gmail.com" },
+    update: {
+      name: "Super Admin",
+      passwordHash,
+      status: true,
+    },
+    create: {
+      name: "Super Admin",
+      email: "info-diem@gmail.com",
+      phone: null,
+      passwordHash,
+      status: true,
+    },
+  });
+
+  await prisma.adminUserRole.upsert({
+    where: {
+      adminUserId_roleId: {
+        adminUserId: superAdminUser.id,
+        roleId: superAdminRole.id,
+      },
+    },
+    update: {},
+    create: {
+      adminUserId: superAdminUser.id,
+      roleId: superAdminRole.id,
+    },
+  });
+
+  const sampleVendors = [
+    {
+      businessName: "Urban Gear BD",
+      contactName: "Rahim Ahmed",
+      email: "rahim@urbangear.example",
+      phone: "01710000001",
+      address: "Gulshan, Dhaka",
+      status: "pending",
+    },
+    {
+      businessName: "Ride Out Store",
+      contactName: "Nusrat Jahan",
+      email: "nusrat@rideout.example",
+      phone: "01710000002",
+      address: "Banani, Dhaka",
+      status: "pending",
+    },
+    {
+      businessName: "Helmet Hub",
+      contactName: "Karim Hossain",
+      email: "karim@helmethub.example",
+      phone: "01710000003",
+      address: "Dhanmondi, Dhaka",
+      status: "pending",
+    },
+  ];
+
+  for (const vendor of sampleVendors) {
+    const existing = await prisma.vendor.findFirst({
+      where: { phone: vendor.phone },
+    });
+    if (existing) {
+      await prisma.vendor.update({
+        where: { id: existing.id },
+        data: vendor,
+      });
+    } else {
+      await prisma.vendor.create({ data: vendor });
+    }
+  }
+
+  const pendingVendor = await prisma.vendor.findFirst({
+    where: { phone: "01710000001" },
+  });
+  if (pendingVendor) {
+    const existingRequest = await prisma.categoryRequest.findFirst({
+      where: {
+        vendorId: pendingVendor.id,
+        title: "Motorcycle Apparel",
+      },
+    });
+    if (!existingRequest) {
+      await prisma.categoryRequest.create({
+        data: {
+          vendorId: pendingVendor.id,
+          title: "Motorcycle Apparel",
+          description: "Request to add motorcycle apparel category",
+          status: "pending",
+        },
+      });
+    }
+  }
+
   const counts = {
     users: await prisma.user.count(),
     otpCodes: await prisma.otpCode.count(),
@@ -887,6 +1057,11 @@ async function main() {
     compliances: await prisma.compliance.count(),
     complianceContacts: await prisma.complianceContact.count(),
     complianceMeta: await prisma.complianceMeta.count(),
+    adminUsers: await prisma.adminUser.count(),
+    roles: await prisma.role.count(),
+    permissions: await prisma.permission.count(),
+    vendors: await prisma.vendor.count(),
+    categoryRequests: await prisma.categoryRequest.count(),
   };
 
   console.log("Seed complete. Row counts:");

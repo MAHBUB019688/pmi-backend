@@ -6,8 +6,9 @@ const app = createApp();
 let server;
 
 async function start() {
-  await prisma.$connect();
+  await prisma.$connect(); //This connects your Node.js application to your database using Prisma.
 
+  //This starts your Express.js server.
   server = app.listen(env.port, () => {
     console.log(`Server running on port ${env.port} (${env.nodeEnv})`);
   });
