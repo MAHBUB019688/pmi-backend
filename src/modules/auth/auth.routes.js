@@ -8,7 +8,7 @@ const router = Router();
 
 router.post("/register/otp/send", limiter, controller.sendRegisterOtp);
 router.post("/register/otp/verify", limiter, controller.verifyRegisterOtp);
-router.post("/register/otp/resend", controller.resendRegisterOtp);
+router.post("/register/otp/resend", limiter, controller.resendRegisterOtp);
 
 router.post("/login/otp/send", limiter, controller.sendLoginOtp);
 router.post("/login/otp/verify", limiter, controller.verifyLoginOtp);
