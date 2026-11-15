@@ -32,6 +32,18 @@ enum PaymentMethod {
   online
 }
 
+//@map = Column Name change
+//@@map = Table Name change 
+//@@index = Query Performance increase 
+//তবে সব Field-এ Index দেওয়া উচিত নয়। কারণ Index Database-এর Storage ব্যবহার করে
+//ধরো, তোমার কাছে একটি বই আছে যেখানে ১,০০০ পৃষ্ঠা রয়েছে। তুমি একটি নির্দিষ্ট বিষয় খুঁজতে চাও, যেমন: "Database".
+তোমার সামনে দুটি পদ্ধতি আছে।
+পদ্ধতি ১: Index ছাড়া
+তুমি প্রথম পৃষ্ঠা থেকে পড়া শুরু করবে। এক পৃষ্ঠা, দুই পৃষ্ঠা, তিন পৃষ্ঠা করে খুঁজতে থাকবে।
+এতে অনেক সময় লাগতে পারে।
+পদ্ধতি ২: Index ব্যবহার করে
+বইয়ের শেষে Index দেওয়া আছে। সেখানে Database কোন পৃষ্ঠায় আছে, সেটা দেখে সরাসরি সেই পৃষ্ঠায় চলে যেতে পারবে।
+
 model User {
   id            Int       @id @default(autoincrement())
   name          String
