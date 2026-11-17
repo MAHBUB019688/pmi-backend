@@ -9,7 +9,7 @@ const errorHandler = require("./middleware/errorHandler");
 function createApp() {
   const app = express();
 
-  app.disable("x-powered-by");//By default, Express.js sends this header with HTTP responses:
+  app.disable("x-powered-by"); //By default, Express.js sends this header with HTTP responses:
   app.use(helmet());
   app.use(
     cors({
