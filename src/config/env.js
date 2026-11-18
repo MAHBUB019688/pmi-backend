@@ -47,8 +47,16 @@ const env = {
   smtpUser,
   smtpPass,
   mailFrom,
+
+  upstashRedisRestUrl: cleanEnv(process.env.UPSTASH_REDIS_REST_URL || ""),
+  upstashRedisRestToken: cleanEnv(process.env.UPSTASH_REDIS_REST_TOKEN || ""),
+  redisCacheTtlSeconds: toNumber(process.env.REDIS_CACHE_TTL_SECONDS, 60),
+  redisEnabled: (process.env.REDIS_ENABLED || "true") === "true",
 };
 
 env.isProduction = env.nodeEnv === "production";
+env.redisConfigured = Boolean(
+  env.redisEnabled && env.upstashRedisRestUrl && env.upstashRedisRestToken,
+);
 
 module.exports = env;

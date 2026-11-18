@@ -3,6 +3,7 @@ const AppError = require("../../utils/AppError");
 const slugify = require("../../utils/slugify");
 const { getPagination, buildPagination } = require("../../utils/pagination");
 const { decimalToNumber } = require("../../utils/serializers");
+const { invalidateProductsListCache } = require("../../utils/cache");
 
 async function uniqueProductSlug(base, excludeId) {
   let slug = slugify(base) || "product";
@@ -158,6 +159,7 @@ async function createProduct(body) {
     include: { category: true, images: { orderBy: { sortOrder: "asc" } } },
   });
 
+  await invalidateProductsListCache();
   return mapProduct(row);
 }
 
@@ -200,6 +202,7 @@ async function updateProduct(id, body) {
     }
   });
 
+  await invalidateProductsListCache();
   return getProduct(existing.id);
 }
 
@@ -207,6 +210,7 @@ async function deleteProduct(id) {
   const existing = await prisma.product.findUnique({ where: { id: Number(id) } });
   if (!existing) throw new AppError("Product not found", 404);
   await prisma.product.delete({ where: { id: existing.id } });
+  await invalidateProductsListCache();
   return null;
 }
 
@@ -224,6 +228,7 @@ async function updateInventory(id, body) {
     include: { category: true, images: { orderBy: { sortOrder: "asc" } } },
   });
 
+  await invalidateProductsListCache();
   return mapProduct(row);
 }
 
@@ -253,6 +258,7 @@ async function setTrendingProducts(productIds) {
     }
   });
 
+  await invalidateProductsListCache();
   return listTrendingProducts();
 }
 

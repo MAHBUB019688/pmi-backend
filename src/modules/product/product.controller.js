@@ -1,7 +1,11 @@
 const productService = require("./product.service");
 const asyncHandler = require("../../utils/asyncHandler");
 const { success, fail } = require("../../utils/apiResponse");
-const redis = require("../../config/redis");
+const {
+  cacheGet,
+  cacheSet,
+  productsListCacheKey,
+} = require("../../utils/cache");
 
 const getCategories = asyncHandler(async (req, res) => {
   const result = await productService.listCategories(req.query);
@@ -14,73 +18,41 @@ const getCategories = asyncHandler(async (req, res) => {
   });
 });
 
-// const getProducts = asyncHandler(async (req, res) => {
-//   const result = await productService.listProducts(req.query, {
-//     restrictedOnly: false,
-//   });
-
-//   let categoryName = null;
-//   if (req.query.category_id) {
-//     const match = result.data[0];
-//     categoryName = match?.category_name || null;
-//   }
-
-//   return success(res, {
-//     message: "Products fetched",
-//     data: {
-//       products: result.data,
-//       meta: result.pagination,
-//       category_name: categoryName,
-//     },
-//   });
-// });
-
 const getProducts = asyncHandler(async (req, res) => {
-  // 1. Generate cache key based on query parameters
-  const cacheKey = `products:${JSON.stringify(req.query)}`;
+  const cacheKey = await productsListCacheKey(req.query);
+  const cached = await cacheGet(cacheKey);
 
-  const ttl = Number(process.env.REDIS_CACHE_TTL_SECONDS || 60);
-
-  // 2. Check Redis cache
-  const cachedProducts = await redis.get(cacheKey);
-
-  if (cachedProducts) {
+  if (cached) {
     return success(res, {
       message: "Products fetched from cache",
-      data: cachedProducts,
+      data: cached,
     });
   }
 
-  // 3. Fetch products using existing service
   const result = await productService.listProducts(req.query, {
     restrictedOnly: false,
   });
 
   let categoryName = null;
-
   if (req.query.category_id) {
     const match = result.data[0];
     categoryName = match?.category_name || null;
   }
 
-  // 4. Prepare response data
   const responseData = {
     products: result.data,
     meta: result.pagination,
     category_name: categoryName,
   };
 
-  // 5. Save response data in Redis
-  await redis.set(cacheKey, responseData, {
-    ex: ttl,
-  });
+  await cacheSet(cacheKey, responseData);
 
-  // 6. Return response
   return success(res, {
     message: "Products fetched",
     data: responseData,
   });
 });
+
 const getRestrictedProducts = asyncHandler(async (req, res) => {
   if (!req.user?.isRestricted) {
     return fail(res, {
